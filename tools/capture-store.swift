@@ -70,9 +70,37 @@ capture.arguments = ["-x", "-o", "-l", String(windowID), temporary.path]
 do { try capture.run() } catch { fail("Could not start macOS screencapture: \(error)") }
 capture.waitUntilExit()
 guard capture.terminationStatus == 0,
-      let source = NSImage(contentsOf: temporary) else {
+      let capturedSource = NSImage(contentsOf: temporary),
+      let capturedImage = capturedSource.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
   fail("macOS could not capture the Raycast window. Check Screen Recording permission; no screenshot was exported.")
 }
+
+// Floating panels can add transparent space to a window capture. Center the
+// actual opaque window rather than those invisible capture margins.
+let capturedWidth = capturedImage.width
+let capturedHeight = capturedImage.height
+var pixels = [UInt8](repeating: 0, count: capturedWidth * capturedHeight * 4)
+guard let pixelContext = CGContext(
+  data: &pixels, width: capturedWidth, height: capturedHeight,
+  bitsPerComponent: 8, bytesPerRow: capturedWidth * 4,
+  space: CGColorSpaceCreateDeviceRGB(),
+  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+) else { fail("Could not inspect the captured window bounds.") }
+pixelContext.draw(capturedImage, in: CGRect(x: 0, y: 0, width: capturedWidth, height: capturedHeight))
+var left = capturedWidth, topEdge = capturedHeight, right = -1, bottomEdge = -1
+for y in 0..<capturedHeight {
+  for x in 0..<capturedWidth where pixels[(y * capturedWidth + x) * 4 + 3] >= 250 {
+    left = min(left, x)
+    right = max(right, x)
+    topEdge = min(topEdge, y)
+    bottomEdge = max(bottomEdge, y)
+  }
+}
+guard right >= left, bottomEdge >= topEdge,
+      let cropped = capturedImage.cropping(to: CGRect(
+        x: left, y: topEdge, width: right - left + 1, height: bottomEdge - topEdge + 1
+      )) else { fail("The captured window contains no opaque content.") }
+let source = NSImage(cgImage: cropped, size: NSSize(width: cropped.width, height: cropped.height))
 
 let width = 2000
 let height = 1250
@@ -87,8 +115,8 @@ guard let bitmap = NSBitmapImageRep(
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = context
 let canvas = NSRect(x: 0, y: 0, width: width, height: height)
-let top = NSColor(srgbRed: 0.93, green: 0.92, blue: 0.96, alpha: 1)
-let bottom = NSColor(srgbRed: 0.83, green: 0.81, blue: 0.89, alpha: 1)
+let top = NSColor(srgbRed: 0.65, green: 0.59, blue: 0.78, alpha: 1)
+let bottom = NSColor(srgbRed: 0.43, green: 0.36, blue: 0.62, alpha: 1)
 NSGradient(starting: bottom, ending: top)?.draw(in: canvas, angle: 90)
 
 // NSImage's point size can differ from pixel size on Retina displays.
@@ -98,7 +126,7 @@ guard let representation = source.representations.first,
 }
 let sourceWidth = CGFloat(representation.pixelsWide)
 let sourceHeight = CGFloat(representation.pixelsHigh)
-let scale = min(1, min(1800 / sourceWidth, 1080 / sourceHeight))
+let scale = min(1, min(1500 / sourceWidth, 950 / sourceHeight))
 let drawWidth = sourceWidth * scale
 let drawHeight = sourceHeight * scale
 let frame = NSRect(
