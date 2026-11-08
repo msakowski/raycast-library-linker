@@ -21,6 +21,8 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
       - run: npm run check
       - name: Validate Raycast Store metadata and available linters
         run: npm run lint

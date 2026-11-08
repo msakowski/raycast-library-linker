@@ -126,6 +126,7 @@ Run the checks before submitting changes:
 ```bash
 npm run check
 npm run lint
+npm audit --audit-level=moderate
 ```
 
 The build writes a distributable extension to `dist/`; development mode installs
@@ -134,6 +135,11 @@ access to Raycast's schema and author API. `npm run check` runs TypeScript,
 ESLint with zero warnings, tests, Prettier verification, and the distribution
 build. `npm run lint:code` runs ESLint alone; `npm run format` applies formatting.
 The local check does not replace Store metadata validation.
+
+The scoped `minimatch@^10` override uses the patched 11.x API for the CLI and
+linting dependencies affected by [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+It preserves the separate 5.x dependency used by the template tooling. Remove
+the override once those upstream dependencies adopt a patched version.
 
 Tests use Node's built-in test runner and the existing TypeScript compiler to
 check reference bounds, publication links, bookmark languages and anchors, and
