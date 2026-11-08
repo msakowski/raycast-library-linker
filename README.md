@@ -147,14 +147,9 @@ queries use SQLite read-only mode.
 Keep packaged artwork under `assets/`; icon paths in the manifest and command
 are relative to that directory.
 
-See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for outstanding release work and
-manual validation, and [docs/RELEASE_QA.md](docs/RELEASE_QA.md) for recorded evidence.
-The included GitHub Actions workflow runs the local checks and
-Store validation when this repository is hosted on GitHub; it does not publish.
-
 `npm run publish` uses Raycast's publishing CLI to submit a review pull request.
-Run it only after the release checklist is complete. It requires network access
-and GitHub authentication. Publication requires Raycast's review and acceptance.
+It requires network access and GitHub authentication. Publication requires
+Raycast's review and acceptance.
 
 ## Source Organization
 
